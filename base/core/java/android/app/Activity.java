@@ -2110,8 +2110,7 @@ public class Activity extends ContextThemeWrapper
     }
 
     /**
-     * Creates a new ActionBar, locates the inflated ActionBarView,
-     * initializes the ActionBar with the view, and sets mActionBar.
+     * 初始化ActionBar
      */
     private void initWindowDecorActionBar() {
         Window window = getWindow();
@@ -2142,6 +2141,7 @@ public class Activity extends ContextThemeWrapper
      * inflated, adding all top-level views to the activity.
      *
      * @param layoutResID Resource ID to be inflated.
+     *                    这个id 一般就是我们添加给Activity 的布局文件
      *
      * @see #setContentView(android.view.View)
      * @see #setContentView(android.view.View, android.view.ViewGroup.LayoutParams)

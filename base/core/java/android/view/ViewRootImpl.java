@@ -1113,6 +1113,9 @@ public final class ViewRootImpl implements ViewParent,
         return vis;
     }
 
+    /**
+     * 该方法是用来计算DecorView的MeasureSpec的值
+     */
     private boolean measureHierarchy(final View host, final WindowManager.LayoutParams lp,
             final Resources res, final int desiredWindowWidth, final int desiredWindowHeight) {
         int childWidthMeasureSpec;
@@ -1788,14 +1791,17 @@ public final class ViewRootImpl implements ViewParent,
                     // Implementation of weights from WindowManager.LayoutParams
                     // We just grow the dimensions as needed and re-measure if
                     // needs be
+                    // 这个host就是DecorView
                     int width = host.getMeasuredWidth();
                     int height = host.getMeasuredHeight();
                     boolean measureAgain = false;
 
                     //horizontalWeight指示还剩余多少额外水平可以分配给相关联的视图。
-                    // 权重大于0，则表明剩余空间将按照权重在剩余有权值的视图中分配。此时View就需要重新measure了
+                    // 权重大于0，则表明剩余空间将按照权重在剩余有权值的视图中分配。
+                    // 此时View就需要重新measure了
                     if (lp.horizontalWeight > 0.0f) {
                         width += (int) ((mWidth - width) * lp.horizontalWeight);
+                        //注意，这里的width就是该View的宽度，不是子View的宽度
                         childWidthMeasureSpec = MeasureSpec.makeMeasureSpec(width,
                                 MeasureSpec.EXACTLY);
                         measureAgain = true;
@@ -2023,7 +2029,7 @@ public final class ViewRootImpl implements ViewParent,
     private void performMeasure(int childWidthMeasureSpec, int childHeightMeasureSpec) {
         Trace.traceBegin(Trace.TRACE_TAG_VIEW, "measure");
         try {
-            // 这里调用 View#measure 方法
+            // 这里调用 View # measure 方法
             mView.measure(childWidthMeasureSpec, childHeightMeasureSpec);
         } finally {
             Trace.traceEnd(Trace.TRACE_TAG_VIEW);

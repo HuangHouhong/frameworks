@@ -17381,6 +17381,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     * 该方法不可重写，继承该类都是重写{@link #onMeasure(int, int)}。
+     * 该方法的作用主要就是修正 widthMeasureSpec 和 heightMeasureSpec 两个参数
      * <p>
      * This is called to find out how big a view should be. The parent
      * supplies constraint information in the width and height parameters.
@@ -17392,16 +17394,15 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * {@link #onMeasure(int, int)} can and must be overridden by subclasses.
      * </p>
      *
-     * @param widthMeasureSpec Horizontal space requirements as imposed by the
-     *        parent
-     * @param heightMeasureSpec Vertical space requirements as imposed by the
-     *        parent
+     * @param widthMeasureSpec 父View宽度的size和mode
+     * @param heightMeasureSpec 父View高度的size和mode
      *
      * @see #onMeasure(int, int)
      */
     public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
         boolean optical = isLayoutModeOptical(this);
         if (optical != isLayoutModeOptical(mParent)) {
+            //Insets就是一个描述矩形更改的类，存储四个偏移量参数。正值则边想中心移动，负值就向外移动
             Insets insets = getOpticalInsets();
             int oWidth  = insets.left + insets.right;
             int oHeight = insets.top  + insets.bottom;
@@ -17426,6 +17427,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
                     mMeasureCache.indexOfKey(key);
             if (cacheIndex < 0 || sIgnoreMeasureCache) {
                 // measure ourselves, this should set the measured dimension flag back
+                // 主要这是这一句
                 onMeasure(widthMeasureSpec, heightMeasureSpec);
                 mPrivateFlags3 &= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
             } else {
@@ -17455,19 +17457,14 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
     /**
      * <p>
-     * Measure the view and its content to determine the measured width and the
-     * measured height. This method is invoked by {@link #measure(int, int)} and
-     * should be overriden by subclasses to provide accurate and efficient
-     * measurement of their contents.
+     *    该方法决定测量的宽高。这个方法由 {@link #measure(int, int)} 调用。
+     *    子类应该重写该方法
      * </p>
      *
      * <p>
-     * <strong>CONTRACT:</strong> When overriding this method, you
-     * <em>must</em> call {@link #setMeasuredDimension(int, int)} to store the
-     * measured width and height of this view. Failure to do so will trigger an
-     * <code>IllegalStateException</code>, thrown by
-     * {@link #measure(int, int)}. Calling the superclass'
-     * {@link #onMeasure(int, int)} is a valid use.
+     *    在重写该方法的时候，需要调用{@link #setMeasuredDimension(int, int)}方法来存储View的测量宽高。
+     *    如果不调用，就会由{@link #measure(int, int)} 方法抛出错误。
+     *    建议在重写该方法的时候，直接使用super调用父类方法即可。
      * </p>
      *
      * <p>
@@ -17505,9 +17502,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * <p>This method must be called by {@link #onMeasure(int, int)} to store the
-     * measured width and measured height. Failing to do so will trigger an
-     * exception at measurement time.</p>
+     * 必须通过{@link #onMeasure（int，int）}调用此方法来存储主题宽度和测量高度。
+     * 如果不这样做，将在测量时触发异常。
      *
      * @param measuredWidth The measured width of this view.  May be a complex
      * bit mask as defined by {@link #MEASURED_SIZE_MASK} and
@@ -17604,6 +17600,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     *  返回默认的大小
+     *  UNSPECIFIED : 返回推荐的View的最小宽高
+     *  AT_MOST & EXACTLY ：返回传入的参数。即View的测量大小
+     *
      * Utility to return a default size. Uses the supplied size if the
      * MeasureSpec imposed no constraints. Will get larger if allowed
      * by the MeasureSpec.
@@ -17630,6 +17630,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     *  返回View的最小高度。
+     *  这个最小值在View的最小高度和背景图片的最小高度中取较大值
+     *
      * Returns the suggested minimum height that the view should use. This
      * returns the maximum of the view's minimum height
      * and the background's minimum height
@@ -17646,6 +17649,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     *  返回View的最小宽度。
+     *  这个最小值在View的最小宽度和背景图片的最小宽度中取较大值
+     *
      * Returns the suggested minimum width that the view should use. This
      * returns the maximum of the view's minimum width)
      * and the background's minimum width
@@ -19570,6 +19576,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     };
 
     /**
+     * 该类就是传递父布局对子View 尺寸测量的约束信息
+     *
      * A MeasureSpec encapsulates the layout requirements passed from parent to child.
      * Each MeasureSpec represents a requirement for either the width or the height.
      * A MeasureSpec is comprised of a size and a mode. There are three possible
@@ -19601,21 +19609,22 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
         private static final int MODE_MASK  = 0x3 << MODE_SHIFT;
 
         /**
-         * Measure specification mode: The parent has not imposed any constraint
-         * on the child. It can be whatever size it wants.
+         * UNSPECIFIED模式
+         * 父 View 不对子 View 做任何约束，子 View 想咋办就咋办
          */
         public static final int UNSPECIFIED = 0 << MODE_SHIFT;
 
         /**
-         * Measure specification mode: The parent has determined an exact size
-         * for the child. The child is going to be given those bounds regardless
-         * of how big it wants to be.
+         *  EXACTLY 模式
+         *  父View已经测量出子View需要的大小，这时候子View的最终大小就是SpecSize的值。
+         *  对应我们在布局文件中写的 match_parent 和精确数值
          */
         public static final int EXACTLY     = 1 << MODE_SHIFT;
 
         /**
-         * Measure specification mode: The child can be as large as it wants up
-         * to the specified size.
+         * AT_MOST模式
+         * 子View的大小就是父View指定的SpecSize的值，并且子View的大小一定不能大于这个值
+         * 对应我们在布局文件中写的 wrap_content
          */
         public static final int AT_MOST     = 2 << MODE_SHIFT;
 
