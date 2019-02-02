@@ -3120,12 +3120,16 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     }
 
     /**
+     * 绘制子View。
+     * 基本思想：就是遍历当前ViewGroup中的所有子View，然后调用View#draw方法让子View自己绘制去
      * {@inheritDoc}
      */
     @Override
     protected void dispatchDraw(Canvas canvas) {
         boolean usingRenderNodeProperties = canvas.isRecordingFor(mRenderNode);
         final int childrenCount = mChildrenCount;
+
+        //获取所有的子View
         final View[] children = mChildren;
         int flags = mGroupFlags;
 
@@ -3196,6 +3200,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                     ? children[childIndex] : preorderedList.get(childIndex);
             if ((child.mViewFlags & VISIBILITY_MASK) == VISIBLE || child.getAnimation() != null) {
                 more |= drawChild(canvas, child, drawingTime);
+                //就是这句，drawChild方法
             }
         }
         if (preorderedList != null) preorderedList.clear();
@@ -3401,6 +3406,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
      * @return True if an invalidate() was issued
      */
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+        //又抛给了View#draw方法。
         return child.draw(canvas, this, drawingTime);
     }
 
@@ -4955,7 +4961,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     }
 
     /**
-     * {@inheritDoc}
+     * 当前View开始布局
      */
     @Override
     public final void layout(int l, int t, int r, int b) {
@@ -4963,6 +4969,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
             if (mTransition != null) {
                 mTransition.layoutChange(this);
             }
+            //ViewGroup父类就是View,所以这里直接由查看View#layout
             super.layout(l, t, r, b);
         } else {
             // record the fact that we noop'd it; request layout when transition finishes
@@ -5394,10 +5401,8 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     }
 
     /**
-     * Ask all of the children of this view to measure themselves, taking into
-     * account both the MeasureSpec requirements for this view and its padding.
-     * We skip children that are in the GONE state The heavy lifting is done in
-     * getChildMeasureSpec.
+     * 让所有子view测量自己的尺寸，需要考虑当前ViewGroup的MeasureSpec和Padding。
+     * 跳过状态为gone的子view
      *
      * @param widthMeasureSpec The width requirements for this view
      * @param heightMeasureSpec The height requirements for this view
@@ -5414,15 +5419,14 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     }
 
     /**
-     * Ask one of the children of this view to measure itself, taking into
-     * account both the MeasureSpec requirements for this view and its padding.
-     * The heavy lifting is done in getChildMeasureSpec.
+     * 测量单个View，需要考虑当前ViewGroup的MeasureSpec和Padding。.
      *
      * @param child The child to measure
      * @param parentWidthMeasureSpec The width requirements for this view
      * @param parentHeightMeasureSpec The height requirements for this view
      */
-    protected void measureChild(View child, int parentWidthMeasureSpec,
+    protected void measureChild(View
+                                        child, int parentWidthMeasureSpec,
             int parentHeightMeasureSpec) {
         final LayoutParams lp = child.getLayoutParams();
 
@@ -5435,10 +5439,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     }
 
     /**
-     * Ask one of the children of this view to measure itself, taking into
-     * account both the MeasureSpec requirements for this view and its padding
-     * and margins. The child must have MarginLayoutParams The heavy lifting is
-     * done in getChildMeasureSpec.
+     * 测量单个View，需要考虑当前ViewGroup的MeasureSpec和Padding、margins。
      *
      * @param child The child to measure
      * @param parentWidthMeasureSpec The width requirements for this view
@@ -5464,22 +5465,18 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
     }
 
     /**
-     * Does the hard part of measureChildren: figuring out the MeasureSpec to
-     * pass to a particular child. This method figures out the right MeasureSpec
-     * for one dimension (height or width) of one child view.
+     *  measureChildren过程中最困难的一部分，为child计算MeasureSpec。
+     *  该方法为每个child的每个维度（宽、高）计算正确的MeasureSpec。
+     *  目标就是把当前viewgroup的MeasureSpec和child的LayoutParams结合起来，生成最合理的结果。
      *
-     * The goal is to combine information from our MeasureSpec with the
-     * LayoutParams of the child to get the best possible results. For example,
-     * if the this view knows its size (because its MeasureSpec has a mode of
-     * EXACTLY), and the child has indicated in its LayoutParams that it wants
-     * to be the same size as the parent, the parent should ask the child to
-     * layout given an exact size.
+     * 比如，当前ViewGroup知道自己的准确大小，因为MeasureSpec的mode为EXACTLY，
+     * 而child希望能够match_parent，这时就会为child生成一个mode为EXACTLY，
+     * 大小为ViewGroup大小的MeasureSpec。
      *
-     * @param spec The requirements for this view
+     * @param spec 父布局给定的约束信息
      * @param padding The padding of this view for the current dimension and
      *        margins, if applicable
-     * @param childDimension How big the child wants to be in the current
-     *        dimension
+     * @param childDimension 一般是自己在布局文件中填写的宽高
      * @return a MeasureSpec integer for the child
      */
     public static int getChildMeasureSpec(int spec, int padding, int childDimension) {
@@ -5492,37 +5489,32 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
         int resultMode = 0;
 
         switch (specMode) {
-        // Parent has imposed an exact size on us
+            // 父布局是EXACTLY
         case MeasureSpec.EXACTLY:
             if (childDimension >= 0) {
+                //childDimension是具体数据，那么子View就使用该数值，子View的mode就是EXACTLY
                 resultSize = childDimension;
                 resultMode = MeasureSpec.EXACTLY;
             } else if (childDimension == LayoutParams.MATCH_PARENT) {
-                // Child wants to be our size. So be it.
+                //childDimension为MATCH_PARENT，那么就使用父布局的size, mode为EXACTLY
                 resultSize = size;
                 resultMode = MeasureSpec.EXACTLY;
             } else if (childDimension == LayoutParams.WRAP_CONTENT) {
-                // Child wants to determine its own size. It can't be
-                // bigger than us.
+                //childDimension为WRAP_CONTENT，那么就使用父布局的size, mode为AT_MOST
                 resultSize = size;
                 resultMode = MeasureSpec.AT_MOST;
             }
             break;
 
-        // Parent has imposed a maximum size on us
+        // 父布局是AT_MOST
         case MeasureSpec.AT_MOST:
             if (childDimension >= 0) {
-                // Child wants a specific size... so be it
                 resultSize = childDimension;
                 resultMode = MeasureSpec.EXACTLY;
             } else if (childDimension == LayoutParams.MATCH_PARENT) {
-                // Child wants to be our size, but our size is not fixed.
-                // Constrain child to not be bigger than us.
                 resultSize = size;
                 resultMode = MeasureSpec.AT_MOST;
             } else if (childDimension == LayoutParams.WRAP_CONTENT) {
-                // Child wants to determine its own size. It can't be
-                // bigger than us.
                 resultSize = size;
                 resultMode = MeasureSpec.AT_MOST;
             }
@@ -5541,7 +5533,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
                 resultMode = MeasureSpec.UNSPECIFIED;
             } else if (childDimension == LayoutParams.WRAP_CONTENT) {
                 // Child wants to determine its own size.... find out how
-                // big it should be
+                // big it should be0000
                 resultSize = 0;
                 resultMode = MeasureSpec.UNSPECIFIED;
             }
@@ -5549,7 +5541,6 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
         }
         return MeasureSpec.makeMeasureSpec(resultSize, resultMode);
     }
-
 
     /**
      * Removes any pending animations for views that have been removed. Call

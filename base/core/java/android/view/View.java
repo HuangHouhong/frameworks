@@ -9782,8 +9782,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * Interface definition for a callback to be invoked when the layout bounds of a view
-     * changes due to layout processing.
+     * 定义一个接口，在layout过程中view的边界发生了变化，回调该接口
      */
     public interface OnLayoutChangeListener {
         /**
@@ -9817,10 +9816,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * Called by draw to draw the child views. This may be overridden
-     * by derived classes to gain control just before its children are drawn
-     * (but after its own view has been drawn).
-     * @param canvas the canvas on which to draw the view
+     * 绘制子View所使用的。如果没有子View可以不用重写。
+     * 如果有子View ，一定要保证自己先绘制完成在绘制子View.
+     * 也就是说onDraw方法要在dispatchDraw之前调用。
      */
     protected void dispatchDraw(Canvas canvas) {
 
@@ -12909,7 +12907,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * Implement this to do your drawing.
+     * 默认空方法，每个继承类都需要自己去重写
      *
      * @param canvas the canvas on which the background will be drawn
      */
@@ -14719,9 +14717,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * This method is called by ViewGroup.drawChild() to have each child view draw itself.
-     * This draw() method is an implementation detail and is not intended to be overridden or
-     * to be called from anywhere else other than ViewGroup.drawChild().
+     * ViewGroup.drawChild（）调用此方法以使每个子视图自己绘制。
+     * 这个draw（）方法是一个实现细节，不要重写，
+     * 也不要再ViewGroup.drawChild（）以外的任何其他地方调用。
      */
     boolean draw(Canvas canvas, ViewGroup parent, long drawingTime) {
         boolean usingRenderNodeProperties = mAttachInfo != null && mAttachInfo.mHardwareAccelerated;
@@ -15072,6 +15070,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     * ViewRootImple#doSoftware中调用的是该方法，注意与上面的同名方法区分，看清楚参数
+     *
      * Manually render this view (and all of its children) to the given Canvas.
      * The view must have already done a full layout before this function is
      * called.  When implementing a view, implement
@@ -15082,6 +15082,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      */
     public void draw(Canvas canvas) {
         final int privateFlags = mPrivateFlags;
+
+        //该标记表示View是否是透明的
         final boolean dirtyOpaque = (privateFlags & PFLAG_DIRTY_MASK) == PFLAG_DIRTY_OPAQUE &&
                 (mAttachInfo == null || !mAttachInfo.mIgnoreDirtyState);
         mPrivateFlags = (privateFlags & ~PFLAG_DIRTY_MASK) | PFLAG_DRAWN;
@@ -15092,31 +15094,33 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
          *
          *      1. Draw the background
          *      2. If necessary, save the canvas' layers to prepare for fading
+         *          即保存当前canvas的一些信息
          *      3. Draw view's content
          *      4. Draw children
          *      5. If necessary, draw the fading edges and restore layers
+         *          绘制View的褪色边缘，有点类似阴影效果，这一步可以跳过
          *      6. Draw decorations (scrollbars for instance)
          */
 
-        // Step 1, draw the background, if needed
+        // 第一步，绘制背景。如果有背景就需要，没有就不用绘制了
         int saveCount;
-
         if (!dirtyOpaque) {
             drawBackground(canvas);
         }
 
-        // skip step 2 & 5 if possible (common case)
+        // 可能会跳过第二步和第五步，这是正常情况
         final int viewFlags = mViewFlags;
         boolean horizontalEdges = (viewFlags & FADING_EDGE_HORIZONTAL) != 0;
         boolean verticalEdges = (viewFlags & FADING_EDGE_VERTICAL) != 0;
         if (!verticalEdges && !horizontalEdges) {
-            // Step 3, draw the content
+            // 第三步， 调用onDraw方法绘制当前视图的内容
             if (!dirtyOpaque) onDraw(canvas);
 
-            // Step 4, draw the children
+            // 第四步，绘制子View
             dispatchDraw(canvas);
 
             // Step 6, draw decorations (scrollbars)
+            // 第六步，绘制装饰（比如滚动条）
             onDrawScrollBars(canvas);
 
             if (mOverlay != null && !mOverlay.isEmpty()) {
@@ -15317,7 +15321,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * Draws the background onto the specified canvas.
+     * 绘制View的背景
      *
      * @param canvas Canvas on which to draw the background
      */
@@ -15327,6 +15331,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
             return;
         }
 
+        //背景尺寸发生变化，重新对尺寸进行赋值。
         if (mBackgroundSizeChanged) {
             background.setBounds(0, 0,  mRight - mLeft, mBottom - mTop);
             mBackgroundSizeChanged = false;
@@ -15346,11 +15351,14 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
             }
         }
 
+        //如果当前View有便宜，需要处理一下。
+        //一般在动画中会产生scrollX，scrollY
         final int scrollX = mScrollX;
         final int scrollY = mScrollY;
         if ((scrollX | scrollY) == 0) {
             background.draw(canvas);
         } else {
+            //注意canvas的特性，先偏移在绘制背景，绘制玩后一定要恢复位置，否则后面都会发生便宜，完蛋了
             canvas.translate(scrollX, scrollY);
             background.draw(canvas);
             canvas.translate(-scrollX, -scrollY);
@@ -15558,14 +15566,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * Assign a size and position to a view and all of its
-     * descendants
-     *
-     * <p>This is the second phase of the layout mechanism.
-     * (The first is measuring). In this phase, each parent calls
-     * layout on all of its children to position them.
-     * This is typically done using the child measurements
-     * that were stored in the measure pass().</p>
+     * View布局开始。
+     * 这里就是设置View的在画布的位置以及子View在画布中的位置，是View绘制流程第二阶段。
      *
      * <p>Derived classes should not override this method.
      * Derived classes with children should override
@@ -15579,11 +15581,14 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      */
     @SuppressWarnings({"unchecked"})
     public void layout(int l, int t, int r, int b) {
+
+        //某些原因导致需要重写measure
         if ((mPrivateFlags3 & PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT) != 0) {
             onMeasure(mOldWidthMeasureSpec, mOldHeightMeasureSpec);
             mPrivateFlags3 &= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
         }
 
+        //存储旧的位置信息
         int oldL = mLeft;
         int oldT = mTop;
         int oldB = mBottom;
@@ -15593,6 +15598,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
                 setOpticalFrame(l, t, r, b) : setFrame(l, t, r, b);
 
         if (changed || (mPrivateFlags & PFLAG_LAYOUT_REQUIRED) == PFLAG_LAYOUT_REQUIRED) {
+
+            //主要部分，调用onLayout方法
             onLayout(changed, l, t, r, b);
             mPrivateFlags &= ~PFLAG_LAYOUT_REQUIRED;
 
@@ -15601,6 +15608,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
                 ArrayList<OnLayoutChangeListener> listenersCopy =
                         (ArrayList<OnLayoutChangeListener>)li.mOnLayoutChangeListeners.clone();
                 int numListeners = listenersCopy.size();
+
+                //回调LayoutChange事件
                 for (int i = 0; i < numListeners; ++i) {
                     listenersCopy.get(i).onLayoutChange(this, l, t, r, b, oldL, oldT, oldR, oldB);
                 }
@@ -15612,12 +15621,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * Called from layout when this view should
-     * assign a size and position to each of its children.
+     * 根据布局规则，计算每一个子View的位置。
      *
-     * Derived classes with children should override
-     * this method and call layout on each of
-     * their children.
+     * 一般在自定义View 中，都需要重写该方法
+     *
      * @param changed This is a new size or position for this view
      * @param left Left position, relative to parent
      * @param top Top position, relative to parent
@@ -17381,6 +17388,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     * 该方法不可重写，继承该类都是重写{@link #onMeasure(int, int)}。
+     * 该方法的作用主要就是修正 widthMeasureSpec 和 heightMeasureSpec 两个参数
      * <p>
      * This is called to find out how big a view should be. The parent
      * supplies constraint information in the width and height parameters.
@@ -17392,16 +17401,15 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * {@link #onMeasure(int, int)} can and must be overridden by subclasses.
      * </p>
      *
-     * @param widthMeasureSpec Horizontal space requirements as imposed by the
-     *        parent
-     * @param heightMeasureSpec Vertical space requirements as imposed by the
-     *        parent
+     * @param widthMeasureSpec 父View宽度的size和mode
+     * @param heightMeasureSpec 父View高度的size和mode
      *
      * @see #onMeasure(int, int)
      */
     public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
         boolean optical = isLayoutModeOptical(this);
         if (optical != isLayoutModeOptical(mParent)) {
+            //Insets就是一个描述矩形更改的类，存储四个偏移量参数。正值则边想中心移动，负值就向外移动
             Insets insets = getOpticalInsets();
             int oWidth  = insets.left + insets.right;
             int oHeight = insets.top  + insets.bottom;
@@ -17426,6 +17434,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
                     mMeasureCache.indexOfKey(key);
             if (cacheIndex < 0 || sIgnoreMeasureCache) {
                 // measure ourselves, this should set the measured dimension flag back
+                // 主要这是这一句
                 onMeasure(widthMeasureSpec, heightMeasureSpec);
                 mPrivateFlags3 &= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
             } else {
@@ -17455,19 +17464,14 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
     /**
      * <p>
-     * Measure the view and its content to determine the measured width and the
-     * measured height. This method is invoked by {@link #measure(int, int)} and
-     * should be overriden by subclasses to provide accurate and efficient
-     * measurement of their contents.
+     *    该方法决定测量的宽高。这个方法由 {@link #measure(int, int)} 调用。
+     *    子类应该重写该方法
      * </p>
      *
      * <p>
-     * <strong>CONTRACT:</strong> When overriding this method, you
-     * <em>must</em> call {@link #setMeasuredDimension(int, int)} to store the
-     * measured width and height of this view. Failure to do so will trigger an
-     * <code>IllegalStateException</code>, thrown by
-     * {@link #measure(int, int)}. Calling the superclass'
-     * {@link #onMeasure(int, int)} is a valid use.
+     *    在重写该方法的时候，需要调用{@link #setMeasuredDimension(int, int)}方法来存储View的测量宽高。
+     *    如果不调用，就会由{@link #measure(int, int)} 方法抛出错误。
+     *    建议在重写该方法的时候，直接使用super调用父类方法即可。
      * </p>
      *
      * <p>
@@ -17505,9 +17509,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * <p>This method must be called by {@link #onMeasure(int, int)} to store the
-     * measured width and measured height. Failing to do so will trigger an
-     * exception at measurement time.</p>
+     * 必须通过{@link #onMeasure（int，int）}调用此方法来存储主题宽度和测量高度。
+     * 如果不这样做，将在测量时触发异常。
      *
      * @param measuredWidth The measured width of this view.  May be a complex
      * bit mask as defined by {@link #MEASURED_SIZE_MASK} and
@@ -17604,6 +17607,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     *  返回默认的大小
+     *  UNSPECIFIED : 返回推荐的View的最小宽高
+     *  AT_MOST & EXACTLY ：返回传入的参数。即View的测量大小
+     *
      * Utility to return a default size. Uses the supplied size if the
      * MeasureSpec imposed no constraints. Will get larger if allowed
      * by the MeasureSpec.
@@ -17630,6 +17637,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     *  返回View的最小高度。
+     *  这个最小值在View的最小高度和背景图片的最小高度中取较大值
+     *
      * Returns the suggested minimum height that the view should use. This
      * returns the maximum of the view's minimum height
      * and the background's minimum height
@@ -17646,6 +17656,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     *  返回View的最小宽度。
+     *  这个最小值在View的最小宽度和背景图片的最小宽度中取较大值
+     *
      * Returns the suggested minimum width that the view should use. This
      * returns the maximum of the view's minimum width)
      * and the background's minimum width
@@ -19570,6 +19583,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     };
 
     /**
+     * 该类就是传递父布局对子View 尺寸测量的约束信息
+     *
      * A MeasureSpec encapsulates the layout requirements passed from parent to child.
      * Each MeasureSpec represents a requirement for either the width or the height.
      * A MeasureSpec is comprised of a size and a mode. There are three possible
@@ -19601,21 +19616,22 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
         private static final int MODE_MASK  = 0x3 << MODE_SHIFT;
 
         /**
-         * Measure specification mode: The parent has not imposed any constraint
-         * on the child. It can be whatever size it wants.
+         * UNSPECIFIED模式
+         * 父 View 不对子 View 做任何约束，子 View 想咋办就咋办
          */
         public static final int UNSPECIFIED = 0 << MODE_SHIFT;
 
         /**
-         * Measure specification mode: The parent has determined an exact size
-         * for the child. The child is going to be given those bounds regardless
-         * of how big it wants to be.
+         *  EXACTLY 模式
+         *  父View已经测量出子View需要的大小，这时候子View的最终大小就是SpecSize的值。
+         *  对应我们在布局文件中写的 match_parent 和精确数值
          */
         public static final int EXACTLY     = 1 << MODE_SHIFT;
 
         /**
-         * Measure specification mode: The child can be as large as it wants up
-         * to the specified size.
+         * AT_MOST模式
+         * 子View的大小就是父View指定的SpecSize的值，并且子View的大小一定不能大于这个值
+         * 对应我们在布局文件中写的 wrap_content
          */
         public static final int AT_MOST     = 2 << MODE_SHIFT;
 
@@ -20370,8 +20386,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
         final float[] mTmpTransformLocation = new float[2];
 
         /**
-         * The view tree observer used to dispatch global events like
-         * layout, pre-draw, touch mode change, etc.
+         * 视图树观察器用于调度布局，预绘制，触摸模式更改等全局事件。
          */
         final ViewTreeObserver mTreeObserver = new ViewTreeObserver();
 

@@ -1113,6 +1113,9 @@ public final class ViewRootImpl implements ViewParent,
         return vis;
     }
 
+    /**
+     * 该方法是用来计算DecorView的MeasureSpec的值
+     */
     private boolean measureHierarchy(final View host, final WindowManager.LayoutParams lp,
             final Resources res, final int desiredWindowWidth, final int desiredWindowHeight) {
         int childWidthMeasureSpec;
@@ -1788,14 +1791,17 @@ public final class ViewRootImpl implements ViewParent,
                     // Implementation of weights from WindowManager.LayoutParams
                     // We just grow the dimensions as needed and re-measure if
                     // needs be
+                    // 这个host就是DecorView
                     int width = host.getMeasuredWidth();
                     int height = host.getMeasuredHeight();
                     boolean measureAgain = false;
 
                     //horizontalWeight指示还剩余多少额外水平可以分配给相关联的视图。
-                    // 权重大于0，则表明剩余空间将按照权重在剩余有权值的视图中分配。此时View就需要重新measure了
+                    // 权重大于0，则表明剩余空间将按照权重在剩余有权值的视图中分配。
+                    // 此时View就需要重新measure了
                     if (lp.horizontalWeight > 0.0f) {
                         width += (int) ((mWidth - width) * lp.horizontalWeight);
+                        //注意，这里的width就是该View的宽度，不是子View的宽度
                         childWidthMeasureSpec = MeasureSpec.makeMeasureSpec(width,
                                 MeasureSpec.EXACTLY);
                         measureAgain = true;
@@ -2023,7 +2029,7 @@ public final class ViewRootImpl implements ViewParent,
     private void performMeasure(int childWidthMeasureSpec, int childHeightMeasureSpec) {
         Trace.traceBegin(Trace.TRACE_TAG_VIEW, "measure");
         try {
-            // 这里调用 View#measure 方法
+            // 这里调用 View # measure 方法
             mView.measure(childWidthMeasureSpec, childHeightMeasureSpec);
         } finally {
             Trace.traceEnd(Trace.TRACE_TAG_VIEW);
@@ -2095,6 +2101,7 @@ public final class ViewRootImpl implements ViewParent,
 
         Trace.traceBegin(Trace.TRACE_TAG_VIEW, "layout");
         try {
+            // 调用View的layout方法，开始布局
             host.layout(0, 0, host.getMeasuredWidth(), host.getMeasuredHeight());
 
             mInLayout = false;
@@ -2123,6 +2130,8 @@ public final class ViewRootImpl implements ViewParent,
                     measureHierarchy(host, lp, mView.getContext().getResources(),
                             desiredWindowWidth, desiredWindowHeight);
                     mInLayout = true;
+
+                    //这里可能再layout一次。所以说layout可能发生一次，或者两次
                     host.layout(0, 0, host.getMeasuredWidth(), host.getMeasuredHeight());
 
                     mHandlingLayoutInLayoutRequest = false;
@@ -2360,6 +2369,7 @@ public final class ViewRootImpl implements ViewParent,
         mIsDrawing = true;
         Trace.traceBegin(Trace.TRACE_TAG_VIEW, "draw");
         try {
+            //绘制
             draw(fullRedrawNeeded);
         } finally {
             mIsDrawing = false;
@@ -2459,6 +2469,7 @@ public final class ViewRootImpl implements ViewParent,
             }
         }
 
+        //这里的mDirty就是需要重写绘制的区域
         final Rect dirty = mDirty;
         if (mSurfaceHolder != null) {
             // The app owns the surface, we won't draw.
@@ -2472,8 +2483,11 @@ public final class ViewRootImpl implements ViewParent,
             return;
         }
 
+        //fullRedrawNeeded为真，表示需要重绘整个屏幕
+        //首次绘制的是时候，该值一定为真
         if (fullRedrawNeeded) {
             mAttachInfo.mIgnoreDirtyState = true;
+            //直接设置为整个屏幕
             dirty.set(0, 0, (int) (mWidth * appScale + 0.5f), (int) (mHeight * appScale + 0.5f));
         }
 
@@ -2542,6 +2556,7 @@ public final class ViewRootImpl implements ViewParent,
                     return;
                 }
 
+                //前面一大堆都是准备工作，这里开始绘制
                 if (!drawSoftware(surface, mAttachInfo, xOffset, yOffset, scalingRequired, dirty)) {
                     return;
                 }
@@ -2555,12 +2570,13 @@ public final class ViewRootImpl implements ViewParent,
     }
 
     /**
-     * @return true if drawing was successful, false if an error occurred
+     * @return true 表示绘制成功,
+     *          false 表示绘制发生错误
      */
     private boolean drawSoftware(Surface surface, AttachInfo attachInfo, int xoff, int yoff,
             boolean scalingRequired, Rect dirty) {
 
-        // Draw with software renderer.
+        // 绘制过程中使用软件渲染.
         final Canvas canvas;
         try {
             final int left = dirty.left;
@@ -2568,10 +2584,12 @@ public final class ViewRootImpl implements ViewParent,
             final int right = dirty.right;
             final int bottom = dirty.bottom;
 
+            //锁定canvas区域，即由dirty区域决定
             canvas = mSurface.lockCanvas(dirty);
 
             // The dirty rectangle can be modified by Surface.lockCanvas()
             //noinspection ConstantConditions
+            // dirty 再lockCanvas过程中发生了变化
             if (left != dirty.left || top != dirty.top || right != dirty.right
                     || bottom != dirty.bottom) {
                 attachInfo.mIgnoreDirtyState = true;
@@ -2629,6 +2647,7 @@ public final class ViewRootImpl implements ViewParent,
                 canvas.setScreenDensity(scalingRequired ? mNoncompatDensity : 0);
                 attachInfo.mSetIgnoreDirtyState = false;
 
+                //这里正是调用View#draw方法
                 mView.draw(canvas);
             } finally {
                 if (!attachInfo.mSetIgnoreDirtyState) {
