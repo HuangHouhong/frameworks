@@ -5402,7 +5402,9 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
 
     /**
      * 让所有子view测量自己的尺寸，需要考虑当前ViewGroup的MeasureSpec和Padding。
-     * 跳过状态为gone的子view
+     * 跳过状态为gone的子view.
+     *
+     * 一般在自定义View中继承ViewGroup，可以在onMeasure方法中手动调用该方法测量子View
      *
      * @param widthMeasureSpec The width requirements for this view
      * @param heightMeasureSpec The height requirements for this view
@@ -5483,6 +5485,7 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager 
         int specMode = MeasureSpec.getMode(spec);
         int specSize = MeasureSpec.getSize(spec);
 
+        //这个size就是父布局剩余空间去掉padding后的大小。显然，childDimension如果大于它，那么最多也只能取值到它
         int size = Math.max(0, specSize - padding);
 
         int resultSize = 0;

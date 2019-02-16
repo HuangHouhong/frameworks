@@ -1270,7 +1270,7 @@ public final class ViewRootImpl implements ViewParent,
         mWindowAttributesChangesFlag = 0;
 
         Rect frame = mWinFrame;
-        // mFirst表示是否是第一次绘制DecorView，在构造方法中初始化未true
+        // mFirst表示是否是第一次添加View,显然，第一次添加的View就是DecorView咯
         if (mFirst) {
             mFullRedrawNeeded = true;
             mLayoutRequested = true;
@@ -1312,7 +1312,7 @@ public final class ViewRootImpl implements ViewParent,
             //Log.i(TAG, "Screen on initialized: " + attachInfo.mKeepScreenOn);
 
         } else {
-            // 不是第一次绘制DecorView
+            // 不是第一次添加View
             desiredWindowWidth = frame.width();
             desiredWindowHeight = frame.height();
             if (desiredWindowWidth != mWidth || desiredWindowHeight != mHeight) {

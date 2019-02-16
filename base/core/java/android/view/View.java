@@ -15070,7 +15070,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * ViewRootImple#doSoftware中调用的是该方法，注意与上面的同名方法区分，看清楚参数
+     *  ViewRootImple#doSoftware 中调用的是该方法，注意与上面的同名方法区分，看清楚参数
      *
      * Manually render this view (and all of its children) to the given Canvas.
      * The view must have already done a full layout before this function is
@@ -15080,7 +15080,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      *
      * @param canvas The Canvas to which the View is rendered.
      */
-    public void draw(Canvas canvas) {
+    public void draw(Canvas canvas) {0
         final int privateFlags = mPrivateFlags;
 
         //该标记表示View是否是透明的
@@ -15582,7 +15582,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     @SuppressWarnings({"unchecked"})
     public void layout(int l, int t, int r, int b) {
 
-        //某些原因导致需要重写measure
+        //某些原因导致需要重写measure。这里可能是第三次的onMeasure过程。
+        // 前两次都是直接调用performMeasure方法，详情参考 ViewRootImpl#performTraversals 方法
         if ((mPrivateFlags3 & PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT) != 0) {
             onMeasure(mOldWidthMeasureSpec, mOldHeightMeasureSpec);
             mPrivateFlags3 &= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
@@ -17504,6 +17505,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      * @see android.view.View.MeasureSpec#getSize(int)
      */
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        // getSuggestedMinimumWidth 获取当前View的最小宽度
+        // getDefaultSize 根据最小宽度与父类的MeausreSpec以及一定的规则，决定当前View的测量宽高
         setMeasuredDimension(getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec),
                 getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec));
     }
