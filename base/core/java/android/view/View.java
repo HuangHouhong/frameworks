@@ -3560,7 +3560,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     private static SparseArray<String> mAttributeMap;
 
     /**
-     * Simple constructor to use when creating a view from code.
+     * 直接再代码中使用new创建对象时调用该构造函数
      *
      * @param context The Context the view is running in, through which it can
      *        access the current theme, resources, etc.
@@ -3598,11 +3598,9 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * Constructor that is called when inflating a view from XML. This is called
-     * when a view is being constructed from an XML file, supplying attributes
-     * that were specified in the XML file. This version uses a default style of
-     * 0, so the only attribute values applied are those in the Context's Theme
-     * and the given AttributeSet.
+     * 在xml文件中定义View时调用该构造函数。
+     * 在xml中定义的所有属性，包括自定义的属性，都是通过第二个参数传递进来。
+     * 需要注意，即使是在xml文件中定义了Style标签，也是调用该构造函数。
      *
      * <p>
      * The method onFinishInflate() will be called after all children have been
@@ -3618,6 +3616,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
+     * 第三个参数是默认的Style，
+     * 这里的默认的Style是指它在当前Application或Activity所用的Theme中的默认Style，
+     * 且只有在明确调用的时候才会生效。
+     *
      * Perform inflation from XML and apply a class-specific base style from a
      * theme attribute. This constructor of View allows subclasses to use their
      * own base style when they are inflating. For example, a Button class's
@@ -9803,9 +9805,10 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
     }
 
     /**
-     * This is called during layout when the size of this view has changed. If
-     * you were just added to the view hierarchy, you're called with the old
-     * values of 0.
+     * 当View的大小发生变化时，将在布局时调用该方法。
+     * 如果时首次将该View添加到视图树中，旧值（即第3，4个参数）为0.
+     *
+     * 该方法在layout方法执行中，如果View宽高变化，就会间接调用到。
      *
      * @param w Current width of this view.
      * @param h Current height of this view.
